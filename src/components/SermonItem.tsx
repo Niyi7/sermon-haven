@@ -1,5 +1,6 @@
 import { Play, Clock, Calendar } from "lucide-react";
-import type { Sermon } from "@/data/sermonData";
+import type { Sermon } from "@/hooks/useSermons";
+import { format } from "date-fns";
 
 interface SermonItemProps {
   sermon: Sermon;
@@ -7,6 +8,10 @@ interface SermonItemProps {
 }
 
 const SermonItem = ({ sermon, onPlay }: SermonItemProps) => {
+  const formattedDate = sermon.date 
+    ? format(new Date(sermon.date), "MMM d, yyyy")
+    : "";
+
   return (
     <button
       onClick={() => onPlay(sermon)}
@@ -20,14 +25,18 @@ const SermonItem = ({ sermon, onPlay }: SermonItemProps) => {
           {sermon.title}
         </p>
         <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock size={11} />
-            {sermon.duration}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={11} />
-            {sermon.date}
-          </span>
+          {sermon.duration && (
+            <span className="flex items-center gap-1">
+              <Clock size={11} />
+              {sermon.duration}
+            </span>
+          )}
+          {formattedDate && (
+            <span className="flex items-center gap-1">
+              <Calendar size={11} />
+              {formattedDate}
+            </span>
+          )}
         </div>
       </div>
     </button>

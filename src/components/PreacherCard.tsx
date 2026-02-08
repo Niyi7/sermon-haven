@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
-import type { Preacher } from "@/data/sermonData";
+import type { Preacher } from "@/hooks/useSermons";
 
 interface PreacherCardProps {
   preacher: Preacher;
 }
 
 const PreacherCard = ({ preacher }: PreacherCardProps) => {
-  const totalSermons = preacher.sermons.length;
-
   return (
     <Link
       to={`/preacher/${preacher.id}`}
@@ -15,7 +13,7 @@ const PreacherCard = ({ preacher }: PreacherCardProps) => {
     >
       <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-primary/20 transition-all duration-300 group-hover:border-primary/50">
         <img
-          src={preacher.photo}
+          src={preacher.image_url || "/placeholder.svg"}
           alt={preacher.name}
           className="h-full w-full object-cover"
         />
@@ -24,7 +22,7 @@ const PreacherCard = ({ preacher }: PreacherCardProps) => {
         {preacher.name}
       </h3>
       <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-        {totalSermons} sermon{totalSermons !== 1 ? "s" : ""}
+        {preacher.sermon_count} sermon{preacher.sermon_count !== 1 ? "s" : ""}
       </span>
     </Link>
   );
