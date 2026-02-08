@@ -1,12 +1,32 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { BookOpen } from "lucide-react";
+import { preachers } from "@/data/sermonData";
+import PreacherCard from "@/components/PreacherCard";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen pb-24">
+      {/* Header */}
+      <header className="px-5 pt-10 pb-6">
+        <div className="flex items-center gap-2 text-primary">
+          <BookOpen size={22} />
+          <span className="text-sm font-medium tracking-wide uppercase">Sermon Library</span>
+        </div>
+        <h1 className="mt-2 text-3xl font-bold text-foreground">
+          Preachers
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Explore sermons from our ministers
+        </p>
+      </header>
+
+      {/* Preachers Grid */}
+      <main className="px-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:max-w-3xl">
+          {preachers.map((preacher) => (
+            <PreacherCard key={preacher.id} preacher={preacher} />
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
