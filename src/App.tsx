@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import PreacherPage from "./pages/PreacherPage";
 import AudioPlayer from "./components/AudioPlayer";
 import NotFound from "./pages/NotFound";
-import type { Sermon } from "./data/sermonData";
+import type { Sermon } from "./hooks/useSermons";
 
 const queryClient = new QueryClient();
 

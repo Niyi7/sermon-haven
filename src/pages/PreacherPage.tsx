@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { preachers } from "@/data/sermonData";
-import type { Sermon } from "@/data/sermonData";
+import { usePreacher } from "@/hooks/useSermons";
+import type { Sermon } from "@/hooks/useSermons";
 import SermonItem from "@/components/SermonItem";
 import {
   Accordion,
@@ -16,12 +16,38 @@ interface PreacherPageProps {
 
 const PreacherPage = ({ onPlaySermon }: PreacherPageProps) => {
   const { id } = useParams<{ id: string }>();
-  const preacher = preachers.find((p) => p.id === id);
+  const { data: preacher, isLoading, error } = usePreacher(id || "");
 
-  if (!preacher) {
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Preacher not found.</p>
+      <div className="min-h-screen pb-24">
+        <header className="px-5 pt-6 pb-4">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+        </header>
+        <div className="flex flex-col items-center px-5 pb-6 animate-pulse">
+          <div className="h-28 w-28 rounded-full bg-muted" />
+          <div className="mt-4 h-6 w-40 rounded bg-muted" />
+          <div className="mt-2 h-4 w-24 rounded bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !preacher) {
+    return (
+      <div className="min-h-screen pb-24">
+        <header className="px-5 pt-6 pb-4">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+        </header>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">Preacher not found.</p>
+        </div>
       </div>
     );
   }
@@ -55,7 +81,7 @@ const PreacherPage = ({ onPlaySermon }: PreacherPageProps) => {
       <div className="flex flex-col items-center px-5 pb-6">
         <div className="h-28 w-28 overflow-hidden rounded-full border-2 border-primary/20">
           <img
-            src={preacher.photo}
+            src={preacher.image_url || "/placeholder.svg"}
             alt={preacher.name}
             className="h-full w-full object-cover"
           />
@@ -64,8 +90,13 @@ const PreacherPage = ({ onPlaySermon }: PreacherPageProps) => {
           {preacher.name}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {preacher.sermons.length} sermons · {themeKeys.length} themes
+          {preacher.sermon_count} sermons · {themeKeys.length} themes
         </p>
+        {preacher.bio && (
+          <p className="mt-3 max-w-md text-center text-sm text-muted-foreground">
+            {preacher.bio}
+          </p>
+        )}
       </div>
 
       {/* Sermons by Theme */}
