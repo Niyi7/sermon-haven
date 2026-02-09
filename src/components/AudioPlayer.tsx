@@ -1,15 +1,24 @@
-import { useState, useEffect } from "react";
-import { Play, Pause, SkipBack, SkipForward, StickyNote, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Play, Pause, SkipBack, SkipForward, StickyNote, X, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AudioPlayerProps {
-  currentSermon: { title: string; preacher: string } | null;
+  currentSermon: {
+    title: string;
+    preacher: string;
+    telegramFileId?: string | null;
+  } | null;
 }
 
 const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(35);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Load notes from localStorage when sermon changes
   useEffect(() => {
@@ -19,6 +28,94 @@ const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
       setNotes(savedNotes || "");
     }
   }, [currentSermon?.title]);
+
+  // Reset state when sermon changes
+  useEffect(() => {
+    setIsPlaying(false);
+    setProgress(0);
+    setAudioUrl(null);
+    setError(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+    }
+  }, [currentSermon?.title]);
+
+  // Update progress bar
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+    };
+
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("ended", handleEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", updateProgress);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [audioUrl]);
+
+  const fetchAudioUrl = async (fileId: string): Promise<string | null> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("get-audio-link", {
+        body: { telegram_file_id: fileId },
+      });
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      return data.url;
+    } catch (err: any) {
+      console.error("Failed to fetch audio URL:", err);
+      setError("Could not load audio");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePlayPause = async () => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    // If we already have a URL, just play
+    if (audioUrl && audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    // Fetch URL from Telegram
+    if (!currentSermon?.telegramFileId) {
+      setError("No audio file available");
+      return;
+    }
+
+    const url = await fetchAudioUrl(currentSermon.telegramFileId);
+    if (url) {
+      setAudioUrl(url);
+      // Wait for next tick so the audio element src updates
+      setTimeout(() => {
+        audioRef.current?.play();
+        setIsPlaying(true);
+      }, 100);
+    }
+  };
 
   // Save notes to localStorage
   const handleNotesChange = (value: string) => {
@@ -33,6 +130,9 @@ const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
 
   return (
     <>
+      {/* Hidden audio element */}
+      <audio ref={audioRef} src={audioUrl || undefined} preload="auto" />
+
       {/* Notes Panel */}
       <div
         className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-out ${
@@ -96,7 +196,11 @@ const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
               {currentSermon.title}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {currentSermon.preacher}
+              {error ? (
+                <span className="text-destructive">{error}</span>
+              ) : (
+                currentSermon.preacher
+              )}
             </p>
           </div>
 
@@ -106,10 +210,17 @@ const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
               <SkipBack size={18} />
             </button>
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 active:scale-95"
+              onClick={handlePlayPause}
+              disabled={isLoading}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 active:scale-95 disabled:opacity-70"
             >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : isPlaying ? (
+                <Pause size={18} />
+              ) : (
+                <Play size={18} className="ml-0.5" />
+              )}
             </button>
             <button className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground">
               <SkipForward size={18} />
