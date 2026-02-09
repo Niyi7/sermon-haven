@@ -2,3 +2,12 @@ project_id = "jodvcovlfipvwuzpzvrq"
 
 [functions.get-audio-link]
 verify_jwt = false
+
+[functions.verify-admin-pin]
+verify_jwt = false
+
+[functions.admin-manage]
+verify_jwt = false
+
+[functions.scan-telegram-channel]
+verify_jwt = false

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import PreacherPage from "./pages/PreacherPage";
+import AdminPage from "./pages/AdminPage";
 import AudioPlayer from "./components/AudioPlayer";
 import NotFound from "./pages/NotFound";
 import type { Sermon } from "./hooks/useSermons";
@@ -28,6 +29,7 @@ const AnimatedRoutes = ({
           path="/preacher/:id"
           element={<PreacherPage onPlaySermon={onPlaySermon} />}
         />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
