@@ -38,10 +38,15 @@ const App = () => {
   const [currentSermon, setCurrentSermon] = useState<{
     title: string;
     preacher: string;
+    telegramFileId?: string | null;
   } | null>(null);
 
   const handlePlaySermon = (sermon: Sermon, preacherName: string) => {
-    setCurrentSermon({ title: sermon.title, preacher: preacherName });
+    setCurrentSermon({
+      title: sermon.title,
+      preacher: preacherName,
+      telegramFileId: sermon.telegram_file_id,
+    });
   };
 
   return (
