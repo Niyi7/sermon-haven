@@ -48,9 +48,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface SermonManagerProps {
-  pin: string;
-}
 
 interface SermonRow {
   id: string;
@@ -62,7 +59,7 @@ interface SermonRow {
   date: string | null;
 }
 
-const SermonManager = ({ pin }: SermonManagerProps) => {
+const SermonManager = () => {
   const { data: preachers } = usePreachers();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -105,7 +102,7 @@ const SermonManager = ({ pin }: SermonManagerProps) => {
     if (!form.preacher_id || !form.title.trim() || !form.theme.trim()) return;
     setSaving(true);
     try {
-      const newSermon = await adminAction(pin, "create_sermon", form);
+      const newSermon = await adminAction("create_sermon", form);
       toast.success("Sermon saved");
       setSermons((prev) => [newSermon as SermonRow, ...prev]);
       queryClient.invalidateQueries({ queryKey: ["preachers"] });
@@ -126,7 +123,7 @@ const SermonManager = ({ pin }: SermonManagerProps) => {
 
   const handleDelete = async (id: string) => {
     try {
-      await adminAction(pin, "delete_sermon", { id });
+      await adminAction("delete_sermon", { id });
       toast.success("Sermon deleted");
       setSermons((prev) => prev.filter((s) => s.id !== id));
       queryClient.invalidateQueries({ queryKey: ["preachers"] });
@@ -139,7 +136,7 @@ const SermonManager = ({ pin }: SermonManagerProps) => {
   const handleScan = async () => {
     setScanning(true);
     try {
-      const files = await scanTelegramChannel(pin);
+      const files = await scanTelegramChannel();
       // Filter out already-imported files
       const existingFileIds = new Set(
         sermons.map((s) => s.telegram_file_id).filter(Boolean)

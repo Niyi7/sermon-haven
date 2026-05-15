@@ -28,11 +28,7 @@ import {
 import { Loader2, Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-interface PreacherManagerProps {
-  pin: string;
-}
-
-const PreacherManager = ({ pin }: PreacherManagerProps) => {
+const PreacherManager = () => {
   const { data: preachers, isLoading } = usePreachers();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -55,10 +51,10 @@ const PreacherManager = ({ pin }: PreacherManagerProps) => {
     setSaving(true);
     try {
       if (editingId) {
-        await adminAction(pin, "update_preacher", { id: editingId, ...form });
+        await adminAction("update_preacher", { id: editingId, ...form });
         toast.success("Preacher updated");
       } else {
-        await adminAction(pin, "create_preacher", form);
+        await adminAction("create_preacher", form);
         toast.success("Preacher added");
       }
       queryClient.invalidateQueries({ queryKey: ["preachers"] });
@@ -72,7 +68,7 @@ const PreacherManager = ({ pin }: PreacherManagerProps) => {
 
   const handleDelete = async (id: string) => {
     try {
-      await adminAction(pin, "delete_preacher", { id });
+      await adminAction("delete_preacher", { id });
       toast.success("Preacher deleted");
       queryClient.invalidateQueries({ queryKey: ["preachers"] });
     } catch (err: any) {
