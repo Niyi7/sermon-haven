@@ -8,6 +8,7 @@ import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import PreacherPage from "./pages/PreacherPage";
 import AdminPage from "./pages/AdminPage";
+import AuthPage from "./pages/AuthPage";
 import AudioPlayer from "./components/AudioPlayer";
 import NotFound from "./pages/NotFound";
 import type { Sermon } from "./hooks/useSermons";
@@ -30,6 +31,7 @@ const AnimatedRoutes = ({
           element={<PreacherPage onPlaySermon={onPlaySermon} />}
         />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
