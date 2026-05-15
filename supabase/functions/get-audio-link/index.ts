@@ -14,11 +14,38 @@ Deno.serve(async (req) => {
   try {
     const { telegram_file_id } = await req.json();
 
-    if (!telegram_file_id) {
-      console.error("Missing telegram_file_id in request body");
+    if (!telegram_file_id || typeof telegram_file_id !== "string" || telegram_file_id.length > 200) {
       return new Response(
-        JSON.stringify({ error: "telegram_file_id is required" }),
+        JSON.stringify({ error: "Invalid request" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify this file_id is associated with a published sermon to prevent
+    // arbitrary use of our bot token for fetching unrelated Telegram files.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: sermon, error: sermonError } = await supabase
+      .from("sermons")
+      .select("id")
+      .eq("telegram_file_id", telegram_file_id)
+      .maybeSingle();
+
+    if (sermonError) {
+      console.error("Sermon lookup failed:", sermonError);
+      return new Response(
+        JSON.stringify({ error: "Unable to resolve audio" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!sermon) {
+      return new Response(
+        JSON.stringify({ error: "Audio not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -26,22 +53,19 @@ Deno.serve(async (req) => {
     if (!botToken) {
       console.error("TELEGRAM_BOT_TOKEN not configured");
       return new Response(
-        JSON.stringify({ error: "Bot token not configured" }),
+        JSON.stringify({ error: "Service unavailable" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Fetching file info for telegram_file_id: ${telegram_file_id}`);
-
-    // Call Telegram's getFile API
-    const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile?file_id=${telegram_file_id}`;
+    const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile?file_id=${encodeURIComponent(telegram_file_id)}`;
     const telegramResponse = await fetch(getFileUrl);
     const telegramData = await telegramResponse.json();
 
     if (!telegramData.ok) {
       console.error("Telegram API error:", JSON.stringify(telegramData));
       return new Response(
-        JSON.stringify({ error: "Failed to get file from Telegram", details: telegramData.description }),
+        JSON.stringify({ error: "Unable to fetch audio file" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -49,16 +73,14 @@ Deno.serve(async (req) => {
     const filePath = telegramData.result.file_path;
     const downloadUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
 
-    console.log(`Successfully resolved file path: ${filePath}`);
-
     return new Response(
       JSON.stringify({ url: downloadUrl }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("get-audio-link unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Service unavailable" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
