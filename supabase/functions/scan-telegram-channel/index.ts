@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     if (!data.ok) {
       console.error("Telegram API error:", JSON.stringify(data));
       return new Response(
-        JSON.stringify({ error: "Failed to fetch updates from Telegram", details: data.description }),
+        JSON.stringify({ error: "Unable to fetch channel updates" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
