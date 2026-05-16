@@ -55,7 +55,7 @@ const SearchBar = ({ onSermonSelect }: SearchBarProps) => {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-full border border-stone-200/60 bg-card py-3 pl-11 pr-10 text-sm text-foreground placeholder:text-muted-foreground shadow-[var(--shadow-elegant)] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
         />
         {query && (
           <button
