@@ -62,7 +62,7 @@ const AudioPlayer = () => {
   return (
     <>
       {/* Sticky mini bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.15)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200/50 bg-card/95 backdrop-blur-md shadow-[0_-8px_32px_-12px_rgba(28,26,23,0.12)] sm:bottom-4 sm:left-1/2 sm:right-auto sm:w-[min(640px,calc(100vw-2rem))] sm:-translate-x-1/2 sm:rounded-2xl sm:border sm:border-stone-200/60 sm:shadow-[var(--shadow-lift)]">
         <div
           className="h-1 w-full bg-secondary cursor-pointer"
           onClick={(e) => {
