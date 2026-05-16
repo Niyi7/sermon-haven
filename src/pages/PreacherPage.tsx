@@ -4,6 +4,7 @@ import { usePreacher } from "@/hooks/useSermons";
 import type { Sermon } from "@/hooks/useSermons";
 import SermonItem from "@/components/SermonItem";
 import PageTransition from "@/components/PageTransition";
+import { usePlayer } from "@/contexts/PlayerContext";
 import {
   Accordion,
   AccordionContent,
@@ -11,11 +12,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-interface PreacherPageProps {
-  onPlaySermon: (sermon: Sermon, preacherName: string) => void;
-}
-
-const PreacherPage = ({ onPlaySermon }: PreacherPageProps) => {
+const PreacherPage = () => {
+  const { playSermon } = usePlayer();
   const { id } = useParams<{ id: string }>();
   const { data: preacher, isLoading, error } = usePreacher(id || "");
 
@@ -127,7 +125,18 @@ const PreacherPage = ({ onPlaySermon }: PreacherPageProps) => {
                     <SermonItem
                       key={sermon.id}
                       sermon={sermon}
-                      onPlay={(s) => onPlaySermon(s, preacher.name)}
+                      onPlay={(s) =>
+                        playSermon({
+                          id: s.id,
+                          title: s.title,
+                          preacherName: preacher.name,
+                          preacherId: preacher.id,
+                          theme: s.theme,
+                          description: s.description,
+                          telegramFileId: s.telegram_file_id,
+                          preacherImage: preacher.image_url,
+                        })
+                      }
                     />
                   ))}
                 </AccordionContent>

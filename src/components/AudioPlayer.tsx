@@ -1,196 +1,93 @@
-import { useState, useEffect, useRef } from "react";
-import { Play, Pause, SkipBack, SkipForward, StickyNote, X, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Play,
+  Pause,
+  ChevronUp,
+  ChevronDown,
+  Loader2,
+  Rewind,
+  FastForward,
+  Gauge,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
+import { usePlayer, formatTime } from "@/contexts/PlayerContext";
+import { Slider } from "@/components/ui/slider";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-interface AudioPlayerProps {
-  currentSermon: {
-    title: string;
-    preacher: string;
-    telegramFileId?: string | null;
-  } | null;
-}
-
-const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showNotes, setShowNotes] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-
-  // Load notes from localStorage when sermon changes
-  useEffect(() => {
-    if (currentSermon) {
-      const key = `sermon-notes-${currentSermon.title}`;
-      const savedNotes = localStorage.getItem(key);
-      setNotes(savedNotes || "");
-    }
-  }, [currentSermon?.title]);
-
-  // Reset state when sermon changes
-  useEffect(() => {
-    setIsPlaying(false);
-    setProgress(0);
-    setAudioUrl(null);
-    setError(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-    }
-  }, [currentSermon?.title]);
-
-  // Update progress bar
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateProgress = () => {
-      if (audio.duration) {
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setProgress(0);
-    };
-
-    audio.addEventListener("timeupdate", updateProgress);
-    audio.addEventListener("ended", handleEnded);
-    return () => {
-      audio.removeEventListener("timeupdate", updateProgress);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [audioUrl]);
-
-  const fetchAudioUrl = async (fileId: string): Promise<string | null> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("get-audio-link", {
-        body: { telegram_file_id: fileId },
-      });
-
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
-
-      return data.url;
-    } catch (err: any) {
-      console.error("Failed to fetch audio URL:", err);
-      setError("Could not load audio");
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePlayPause = async () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-      return;
-    }
-
-    // If we already have a URL, just play
-    if (audioUrl && audioRef.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-      return;
-    }
-
-    // Fetch URL from Telegram
-    if (!currentSermon?.telegramFileId) {
-      setError("No audio file available");
-      return;
-    }
-
-    const url = await fetchAudioUrl(currentSermon.telegramFileId);
-    if (url) {
-      setAudioUrl(url);
-      // Wait for next tick so the audio element src updates
-      setTimeout(() => {
-        audioRef.current?.play();
-        setIsPlaying(true);
-      }, 100);
-    }
-  };
-
-  // Save notes to localStorage
-  const handleNotesChange = (value: string) => {
-    setNotes(value);
-    if (currentSermon) {
-      const key = `sermon-notes-${currentSermon.title}`;
-      localStorage.setItem(key, value);
-    }
-  };
+const AudioPlayer = () => {
+  const {
+    currentSermon,
+    isPlaying,
+    isLoading,
+    error,
+    duration,
+    currentTime,
+    playbackSpeed,
+    volume,
+    isExpanded,
+    togglePlay,
+    seek,
+    skipForward,
+    skipBackward,
+    cyclePlaybackSpeed,
+    setVolume,
+    setExpanded,
+    close,
+  } = usePlayer();
 
   if (!currentSermon) return null;
 
+  const remaining = Math.max(0, duration - currentTime);
+
+  const PlayPauseBtn = ({ size = 18, big = false }: { size?: number; big?: boolean }) => (
+    <button
+      onClick={togglePlay}
+      disabled={isLoading}
+      className={`flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-105 active:scale-95 disabled:opacity-70 ${
+        big ? "h-16 w-16" : "h-10 w-10"
+      }`}
+      aria-label={isPlaying ? "Pause" : "Play"}
+    >
+      {isLoading ? (
+        <Loader2 size={big ? 28 : size} className="animate-spin" />
+      ) : isPlaying ? (
+        <Pause size={big ? 28 : size} />
+      ) : (
+        <Play size={big ? 28 : size} className="ml-0.5" />
+      )}
+    </button>
+  );
+
   return (
     <>
-      {/* Hidden audio element */}
-      <audio ref={audioRef} src={audioUrl || undefined} preload="auto" />
-
-      {/* Notes Panel */}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-out ${
-          showNotes ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <div className="mx-auto max-w-lg">
-          <div className="mx-4 mb-20 rounded-t-2xl border border-b-0 border-border bg-card shadow-lg">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="font-display text-sm font-semibold text-foreground">
-                Sermon Notes
-              </h3>
-              <button
-                onClick={() => setShowNotes(false)}
-                className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-4">
-              <textarea
-                value={notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder="Jot down your thoughts while listening..."
-                className="h-32 w-full resize-none rounded-lg border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Notes are saved automatically to your device.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Audio Player Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md">
-        {/* Progress bar */}
-        <div className="h-1 w-full bg-secondary">
+      {/* Sticky mini bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.15)]">
+        <div
+          className="h-1 w-full bg-secondary cursor-pointer"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            seek(ratio * duration);
+          }}
+        >
           <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-primary transition-all"
+            style={{ width: duration ? `${(currentTime / duration) * 100}%` : "0%" }}
           />
         </div>
 
-        <div className="flex items-center gap-3 px-4 py-3">
-          {/* Notes button */}
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className={`rounded-full p-2 transition-colors ${
-              showNotes
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <StickyNote size={18} />
-          </button>
-
-          {/* Info */}
+        <div
+          className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+          onClick={() => setExpanded(true)}
+        >
+          {currentSermon.preacherImage && (
+            <img
+              src={currentSermon.preacherImage}
+              alt=""
+              className="h-10 w-10 rounded-md object-cover"
+            />
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">
               {currentSermon.title}
@@ -199,35 +96,163 @@ const AudioPlayer = ({ currentSermon }: AudioPlayerProps) => {
               {error ? (
                 <span className="text-destructive">{error}</span>
               ) : (
-                currentSermon.preacher
+                currentSermon.preacherName
               )}
             </p>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-1">
-            <button className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground">
-              <SkipBack size={18} />
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={skipBackward}
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Rewind 10 seconds"
+            >
+              <Rewind size={18} />
+            </button>
+            <PlayPauseBtn />
+            <button
+              onClick={skipForward}
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Skip 30 seconds"
+            >
+              <FastForward size={18} />
             </button>
             <button
-              onClick={handlePlayPause}
-              disabled={isLoading}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 active:scale-95 disabled:opacity-70"
+              onClick={() => setExpanded(true)}
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Expand player"
             >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : isPlaying ? (
-                <Pause size={18} />
-              ) : (
-                <Play size={18} className="ml-0.5" />
-              )}
-            </button>
-            <button className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground">
-              <SkipForward size={18} />
+              <ChevronUp size={18} />
             </button>
           </div>
         </div>
       </div>
+
+      {/* Expanded full-screen / drawer view */}
+      <Sheet open={isExpanded} onOpenChange={setExpanded}>
+        <SheetContent
+          side="bottom"
+          className="h-[100dvh] w-full border-0 bg-gradient-to-b from-background via-background to-secondary/40 p-0 sm:max-w-none"
+        >
+          <div className="flex h-full flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5">
+              <button
+                onClick={() => setExpanded(false)}
+                className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label="Minimize"
+              >
+                <ChevronDown size={22} />
+              </button>
+              <span className="font-display text-xs uppercase tracking-widest text-muted-foreground">
+                Now Playing
+              </span>
+              <button
+                onClick={close}
+                className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label="Close player"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Artwork */}
+            <div className="flex flex-1 flex-col items-center justify-center px-8 py-6">
+              <div className="aspect-square w-full max-w-xs overflow-hidden rounded-3xl bg-secondary shadow-2xl ring-1 ring-border">
+                <img
+                  src={currentSermon.preacherImage || "/placeholder.svg"}
+                  alt={currentSermon.preacherName}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <div className="mt-8 w-full max-w-md text-center">
+                <h2 className="font-display text-2xl font-semibold text-foreground">
+                  {currentSermon.title}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {currentSermon.preacherName}
+                  {currentSermon.theme ? ` · ${currentSermon.theme}` : ""}
+                </p>
+                {currentSermon.description && (
+                  <p className="mt-3 line-clamp-3 text-sm text-muted-foreground/90">
+                    {currentSermon.description}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="mx-auto w-full max-w-md px-6 pb-8">
+              {/* Scrubber */}
+              <Slider
+                value={[currentTime]}
+                max={duration || 1}
+                step={1}
+                onValueChange={(v) => seek(v[0])}
+                className="mb-2"
+              />
+              <div className="mb-6 flex justify-between text-xs tabular-nums text-muted-foreground">
+                <span>{formatTime(currentTime)}</span>
+                <span>-{formatTime(remaining)}</span>
+              </div>
+
+              {/* Main controls */}
+              <div className="flex items-center justify-center gap-6">
+                <button
+                  onClick={skipBackward}
+                  className="flex flex-col items-center text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Rewind 10 seconds"
+                >
+                  <Rewind size={28} />
+                  <span className="mt-0.5 text-[10px] font-medium">10s</span>
+                </button>
+                <PlayPauseBtn big />
+                <button
+                  onClick={skipForward}
+                  className="flex flex-col items-center text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Skip 30 seconds"
+                >
+                  <FastForward size={28} />
+                  <span className="mt-0.5 text-[10px] font-medium">30s</span>
+                </button>
+              </div>
+
+              {/* Secondary controls */}
+              <div className="mt-8 flex items-center justify-between gap-4">
+                <button
+                  onClick={cyclePlaybackSpeed}
+                  className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70"
+                  aria-label="Change playback speed"
+                >
+                  <Gauge size={14} />
+                  {playbackSpeed}x
+                </button>
+
+                <div className="flex flex-1 items-center gap-2">
+                  <button
+                    onClick={() => setVolume(volume > 0 ? 0 : 1)}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label="Toggle mute"
+                  >
+                    {volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                  </button>
+                  <Slider
+                    value={[volume * 100]}
+                    max={100}
+                    step={1}
+                    onValueChange={(v) => setVolume(v[0] / 100)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };
