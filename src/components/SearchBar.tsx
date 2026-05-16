@@ -71,7 +71,7 @@ const SearchBar = ({ onSermonSelect }: SearchBarProps) => {
       </div>
 
       {isOpen && query && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-auto rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-auto rounded-2xl border border-stone-200/60 bg-card shadow-[var(--shadow-lift)]">
           {isLoading ? (
             <div className="px-4 py-3 text-sm text-muted-foreground">Searching...</div>
           ) : results.length === 0 ? (
